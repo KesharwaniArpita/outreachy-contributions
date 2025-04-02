@@ -176,9 +176,128 @@ A new Parquet file containing:
 ## Notebook Version
 For an interactive version of this workflow, refer to `notebooks/featurisation.ipynb`, which provides step-by-step execution and visualization.
 
-## Notes
-- Ensure the dataset path is correctly set before running the scripts.
-- Modify `batch_size` in `featurize_tox21.py` to optimize memory usage based on system capacity.
+## Data Preprocessing
+The TOX21 NR-AR dataset consisted of 7,265 compounds (6,956 negatives, 309 positives) exhibiting severe class imbalance (4.25% positive samples). Each compound was represented by:
+- A 1024-dimensional molecular embedding vector
+- Binary label (Y ∈ {0,1}) indicating androgen receptor activity
+
+### Feature Engineering
+1. **Embedding Expansion**:
+   - Converted list-type embeddings into 1024 numerical features (emb_0 to emb_1023)
+   - Verified dimensional integrity through dtype inspection (float32)
+
+2. **Stratified Dataset Splitting**:
+   - Partitioned data maintaining class proportions:
+     - Training: 80% (n=5,812)
+     - Validation: 10% (n=727)
+     - Test: 10% (n=727)
+   - Used random_state=42 for reproducibility
+
+### Class Imbalance Mitigation
+- Applied Synthetic Minority Over-sampling Technique (SMOTE) to training set only
+- Generated synthetic positive samples until class balance was achieved
+- Final training distribution: 5,812 negatives ↔ 5,812 positives
+
+### Feature Standardization
+The standardization is computed as:
+
+$$
+z = \frac{x - \mu}{\sigma}
+$$
+
+Where:
+- \{ \mu \}: Mean of training data
+- \( \sigma \): Standard deviation of training data
+
+
+
+### Dimensionality Visualization
+- Performed t-SNE (perplexity=30) on standardized features
+- Visualized 2D projections to verify:
+  - Class separation potential
+  - Effectiveness of SMOTE augmentation
+  - Absence of artificial clustering artifacts
+
+**t-SNE (t-Distributed Stochastic Neighbor Embedding)** is a dimensionality reduction technique that visualizes high-dimensional data in 2D/3D by preserving local similarities. It helps in ML by **Revealing clusters/patterns** in complex data (e.g., molecular embeddings) and **Validating preprocessing** (e.g., checking if SMOTE creates realistic synthetic samples).  
+
+<!-- ![Preprocessing Pipeline](path/to/visualization.png)
+*Fig. 1: Data flow from raw embeddings to processed splits* -->
+
+## Data Preprocessing Steps
+
+### 1. Load and Inspect Data
+
+```python
+df = pd.read_parquet("../data/Single/tox21_NR-AR_featurized.parquet")
+print(f"Initial class distribution:\n{df['Y'].value_counts()}")
+```
+**Result**: The dataset is highly imbalanced (95.75% negative, 4.25% positive).
+
+### 2. Process Embeddings
+
+```python
+# Expand 1024D embeddings into columns
+embeddings_df = pd.DataFrame(df["embedding"].tolist())
+embeddings_df.columns = [f"emb_{i}" for i in range(1024)]
+```
+
+**Result**: Expanded the embedding column into separate 1024 columns. Now we have total 10127 columns
+
+### 3. Create Balanced Splits
+
+```python
+# Stratified 80/10/10 split
+train_df, temp_df = train_test_split(df, test_size=0.2, stratify=df['Y'], random_state=42)
+val_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['Y'], random_state=42)
+
+# Apply SMOTE to training only
+smote = SMOTE(random_state=42)
+X_resampled, y_resampled = smote.fit_resample(train_df.filter(like="emb_"), train_df["Y"])
+```
+
+SMOTE is only applied to traing data and not to validation and test data to train a robust NN model and prevent datat leakage and overfitting. SMOTE generates synthetic compounds in chemically meaningful regions of feature space (visible in t-SNE plots as interpolated points between real actives). Unlike random oversampling, SMOTE also avoids creating duplicate samples that could artificially inflate validation metrics.
+
+### 4. Feature Standardization
+
+
+```python
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_resampled)  # Fit on resampled train
+X_val = scaler.transform(val_df.filter(like="emb_"))  # Transform others
+```
+
+### Key Statistics
+
+| Stage          | Negative Count | Positive Count | Ratio   |
+|----------------|----------------|----------------|---------|
+| Raw Data       | 6,956          | 309            | 22.5:1  |
+| After SMOTE    | 5,812          | 5,812          | 1:1     |
+| Validation Set | 696            | 31             | 22.5:1  |
+| Test Set       | 696            | 31             | 22.5:1  |
+
+## Visualization
+
+
+```python
+# Class distribution plots
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,4))
+sns.countplot(x=train_df["Y"], ax=ax1).set_title("Before SMOTE")
+sns.countplot(x=y_resampled, ax=ax2).set_title("After SMOTE")
+```
+<div style="display: flex; justify-content: space-between;">
+  <img src="./images/bSMOTE.png" width="49%" alt="Before SMOTE">
+  <img src="./images/aSMOTE.png" width="49%" alt="After SMOTE">
+</div>
+
+## Reproducibility Notes
+- All random operations seeded with `random_state=42`
+- Validation/test sets remain completely unseen during SMOTE
+- Standardization parameters (μ, σ) derived exclusively from training data
+
+
+## Model Training
+To be Updated...
+
 
 ## Acknowledgments
 This project utilizes the [Ersilia](https://ersilia.io/) model for molecular embeddings.
