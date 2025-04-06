@@ -1,4 +1,88 @@
-# Outreachy contribution period
+# Predicting Chemical Toxicity with Tox21: A Machine Learning Pipeline for Safer Drug Discovery
+
+This project is part of my Outreachy contribution period, focusing on building a machine learning pipeline to predict chemical toxicity using the Tox21 dataset from the Therapeutics Data Commons. It includes end-to-end data handling, exploratory data analysis, feature engineering with molecular embeddings, and techniques for class imbalance. The goal is to enable early toxicity screening in the drug development pipeline.
+
+
+
+## 📚 Table of Contents
+## Table of Contents  
+1. **[Dataset: Tox21](#dataset-tox21)**  
+   - [Why Tox21?](#-why-tox21)  
+     - [Relevance to Drug Discovery](#1-relevance-to-drug-discovery-and-toxicity-screening)  
+     - [Binary Classification-Friendly Structure](#2-binary-classification-friendly-structure)  
+     - [Well-Established Benchmark Dataset](#3-well-established-benchmark-dataset)  
+     - [Computational Feasibility](#4-computational-feasibility)  
+     - [Multi-Task Learning Potential](#5-multi-task-learning-potential)  
+     - [Real-World Use Cases](#6-real-world-use-cases)  
+     - [Backed by Literature](#7-backed-by-literature)  
+
+2. **[Tox21 Data Processing and EDA](#tox21-data-processing-and-eda)**  
+   - [Installation](#installation)  
+   - [Data Loading (`dataloader.py`)](#data-loading-dataloaderpy)  
+     - [Functionality](#functionality)  
+     - [Usage Example](#usage-example)  
+     - [Arguments](#arguments)  
+   - [Exploratory Data Analysis (`eda.py`)](#exploratory-data-analysis-edapy)  
+     - [Functionality](#functionality-1)  
+     - [Usage](#usage)  
+     - [Arguments](#arguments-1)  
+     - [Output Files](#output-files)  
+     - [Notebooks](#notebooks)  
+     - [Tests](#tests)  
+     - [Key Inferences from EDA](#key-inferences-from-eda)  
+
+3. **[Featurization of Tox21 NR-AR](#featurization-of-tox21-nr-ar)**  
+   - [Description](#description)  
+   - [Usage](#usage-1)  
+   - [Workflow](#workflow)  
+   - [Expected Output](#expected-output)  
+   - [Notebook Version](#notebook-version)  
+4. **[Data Preprocessing](#data-preprocessing)**  
+     - [Feature Engineering](#feature-engineering)  
+     - [Class Imbalance Mitigation](#class-imbalance-mitigation)  
+     - [Feature Standardization](#feature-standardization)  
+     - [Data Preprocessing Steps](#data-preprocessing-steps)  
+
+5. **[Model Training](#model-training)**  
+   - [Model Architecture](#model-architecture)  
+   - [Hyperparameters](#hyperparameters)  
+   - [Results](#results)  
+   - [Making Predictions](#making-predictions)  
+   - [Evaluating Performance](#evaluating-performance-and-results-interpretation)  
+   - [Output Files](#output-files-1)  
+
+6. **[Conclusion](#conclusion)**   
+
+7. **[Acknowledgments](#acknowledgments)**  
+
+8. **[Citation](#citation)**  
+9. **[License](#license)**  
+<!-- - [Dataset: Tox21](#dataset-tox21)
+  - [🌟 Why Tox21?](#-why-tox21)
+    - [1. Relevance to Drug Discovery and Toxicity Screening](#1-relevance-to-drug-discovery-and-toxicity-screening)
+    - [2. Binary Classification-Friendly Structure](#2-binary-classification-friendly-structure)
+    - [3. Well-Established Benchmark Dataset](#3-well-established-benchmark-dataset)
+    - [4. Computational Feasibility](#4-computational-feasibility)
+    - [5. Multi-Task Learning Potential](#5-multi-task-learning-potential)
+    - [6. Real-World Use Cases](#6-real-world-use-cases)
+    - [7. Backed by Literature](#7-backed-by-literature)
+- [Tox21 Data Processing and EDA](#tox21-data-processing-and-eda)
+  - [Installation](#installation)
+  - [Data Loading (`dataloader.py`)](#data-loading-dataloaderpy)
+    - [Functionality](#functionality)
+    - [Usage Example](#usage-example)
+    - [Arguments](#arguments)
+  - [Exploratory Data Analysis (`eda.py`)](#exploratory-data-analysis-edapy)
+    - [Functionality](#functionality-1)
+    - [Usage](#usage)
+    - [Arguments](#arguments-1)
+    - [Output Files](#output-files)
+    - [Notebooks](#notebooks)
+    - [Tests](#tests)
+    - [Key Inferences from EDA](#key-inferences-from-eda)
+- [Featurization of Tox21 NR-AR](#featurization-of-tox21-nr-ar) -->
+  
+
 
 ## Dataset: Tox21
 
@@ -128,8 +212,14 @@ python eda.py --file path/to/dataset.parquet --output output_directory/
 
   - `tox21_data_exploration_single.ipynb` – Instead of analyzing all endpoints together, this notebook focuses on **a single toxicity endpoint** at a time. It allows for a more detailed feature-wise exploration, including outlier detection and feature importance for a specific target.
 
+#### Tests
+To run tests for EDA functionality:
+```
+python tests/test_eda.py
+```
 
-### 📌 Key Inferences from EDA  
+
+#### Key Inferences from EDA  
 
 - **Missing Values:** The dataset has minimal missing values, making it ready for modeling with little preprocessing.  
 
@@ -174,8 +264,15 @@ A new Parquet file containing:
 - Original dataset columns
 - A new column `embedding` (1024-dimensional vector representation of each molecule)
 
-## Notebook Version
+
+#### Notebook Version
 For an interactive version of this workflow, refer to `notebooks/featurisation.ipynb`, which provides step-by-step execution and visualization.
+
+#### Tests
+To run tests for featuriser:
+```
+python tests/test_featuriser.py
+```
 
 ## Data Preprocessing
 The TOX21 NR-AR dataset consisted of 7,265 compounds (6,956 negatives, 309 positives) exhibiting severe class imbalance (4.25% positive samples). Each compound was represented by:
@@ -203,30 +300,20 @@ The TOX21 NR-AR dataset consisted of 7,265 compounds (6,956 negatives, 309 posit
 The standardization is computed as:
 
 $$
-z = \frac{x - \mu}{\sigma}
+z = \frac{x - \mu(mean)}{\sigma(std.  deviation)}
 $$
 
-Where:
-- \{ \mu \}: Mean of training data
-- \( \sigma \): Standard deviation of training data
-
-
-
-### Dimensionality Visualization
-- Performed t-SNE (perplexity=30) on standardized features
-- Visualized 2D projections to verify:
-  - Class separation potential
-  - Effectiveness of SMOTE augmentation
-  - Absence of artificial clustering artifacts
-
-**t-SNE (t-Distributed Stochastic Neighbor Embedding)** is a dimensionality reduction technique that visualizes high-dimensional data in 2D/3D by preserving local similarities. It helps in ML by **Revealing clusters/patterns** in complex data (e.g., molecular embeddings) and **Validating preprocessing** (e.g., checking if SMOTE creates realistic synthetic samples).  
-
+```python
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_resampled)  # Fit on resampled train
+X_val = scaler.transform(val_df.filter(like="emb_"))  # Transform others
+```
 <!-- ![Preprocessing Pipeline](path/to/visualization.png)
 *Fig. 1: Data flow from raw embeddings to processed splits* -->
 
-## Data Preprocessing Steps
+### Data Preprocessing Steps
 
-### 1. Load and Inspect Data
+#### 1. Load and Inspect Data
 
 ```python
 df = pd.read_parquet("../data/Single/tox21_NR-AR_featurized.parquet")
@@ -234,7 +321,7 @@ print(f"Initial class distribution:\n{df['Y'].value_counts()}")
 ```
 **Result**: The dataset is highly imbalanced (95.75% negative, 4.25% positive).
 
-### 2. Process Embeddings
+#### 2. Process Embeddings
 
 ```python
 # Expand 1024D embeddings into columns
@@ -244,7 +331,7 @@ embeddings_df.columns = [f"emb_{i}" for i in range(1024)]
 
 **Result**: Expanded the embedding column into separate 1024 columns. Now we have total 10127 columns
 
-### 3. Create Balanced Splits
+#### 3. Create Balanced Splits
 
 ```python
 # Stratified 80/10/10 split
@@ -258,15 +345,6 @@ X_resampled, y_resampled = smote.fit_resample(train_df.filter(like="emb_"), trai
 
 SMOTE is only applied to traing data and not to validation and test data to train a robust NN model and prevent datat leakage and overfitting. SMOTE generates synthetic compounds in chemically meaningful regions of feature space (visible in t-SNE plots as interpolated points between real actives). Unlike random oversampling, SMOTE also avoids creating duplicate samples that could artificially inflate validation metrics.
 
-### 4. Feature Standardization
-
-
-```python
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_resampled)  # Fit on resampled train
-X_val = scaler.transform(val_df.filter(like="emb_"))  # Transform others
-```
-
 ### Key Statistics
 
 | Stage          | Negative Count | Positive Count | Ratio   |
@@ -276,7 +354,7 @@ X_val = scaler.transform(val_df.filter(like="emb_"))  # Transform others
 | Validation Set | 696            | 31             | 22.5:1  |
 | Test Set       | 696            | 31             | 22.5:1  |
 
-## Visualization
+### Visualization
 
 
 ```python
@@ -298,37 +376,6 @@ sns.countplot(x=y_resampled, ax=ax2).set_title("After SMOTE")
 
 ## Model Training
 This section details a deep learning model developed to predict androgen receptor (AR) activity using the Tox21 NR-AR dataset. The model serves as a computational tool for identifying potential endocrine disruptors by classifying compounds as AR-active or inactive.
-
-### Data Preprocessing
-1. **Feature Scaling**: All embedding features are standardized (mean=0, std=1)
-2. **Class Balancing**: Training data is resampled using SMOTE
-3. **Train/Val/Test Split**: 80%/10%/10% stratified split
-
-(Details discussion in )
-
-### Hyperparameters
- 
-Hyperparameters are **configurable settings** that control how a neural network learns. Unlike model parameters (weights and biases), hyperparameters are **set before training** and influence:  
-- **Model architecture** (e.g., number of layers, neurons)  
-- **Training process** (e.g., learning rate, batch size)  
-- **Regularization** (e.g., dropout rate, weight decay)  
-
-
-
-#### Key Hyperparameters in Tox21 NR-AR Model
-
-| Hyperparameter | Value | Role |
-|--------------|------------|------|
-| **Learning Rate (lr)** | `0.00001` | Controls step size in gradient descent (too high → overshooting; too low → slow convergence) |
-| **Batch Size** | `1024` | Number of samples processed before updating weights (affects memory usage and gradient stability) |
-| **Epochs** | `150` | Number of full passes through the training data |
-| **Hidden Layers** | `4` | Depth of the network (512 → 256 → 128 → 64 neurons) |
-| **Dropout Rate** | `0.3` | Fraction of neurons randomly deactivated to prevent overfitting |
-| **Optimizer** | `Adam` | Adaptive learning rate algorithm (combines momentum + RMSProp) |
-| **Activation** | `ReLU` (hidden), `Sigmoid` (output) | Introduces non-linearity (ReLU) and squashes outputs to [0,1] (Sigmoid) |
-
-
- 
 
 ### Model Architecture
 
@@ -362,6 +409,30 @@ model = keras.Sequential([
 
 The model was trained on resampled data (using SMOTE) to address class imbalance, with separate validation and test sets held out for evaluation.
 
+### Hyperparameters
+ 
+Hyperparameters are **configurable settings** that control how a neural network learns. Unlike model parameters (weights and biases), hyperparameters are **set before training** and influence:  
+- **Model architecture** (e.g., number of layers, neurons)  
+- **Training process** (e.g., learning rate, batch size)  
+- **Regularization** (e.g., dropout rate, weight decay)  
+
+
+
+#### Key Hyperparameters in Tox21 NR-AR Model
+
+| Hyperparameter | Value | Role |
+|--------------|------------|------|
+| **Learning Rate (lr)** | `0.00001` | Controls step size in gradient descent (too high → overshooting; too low → slow convergence) |
+| **Batch Size** | `1024` | Number of samples processed before updating weights (affects memory usage and gradient stability) |
+| **Epochs** | `150` | Number of full passes through the training data |
+| **Hidden Layers** | `4` | Depth of the network (512 → 256 → 128 → 64 neurons) |
+| **Dropout Rate** | `0.3` | Fraction of neurons randomly deactivated to prevent overfitting |
+| **Optimizer** | `Adam` | Adaptive learning rate algorithm (combines momentum + RMSProp) |
+| **Activation** | `ReLU` (hidden), `Sigmoid` (output) | Introduces non-linearity (ReLU) and squashes outputs to [0,1] (Sigmoid) |
+
+
+
+
 ### Results
 Key performance metrics:
 
@@ -375,10 +446,10 @@ Key performance metrics:
   <img src="output\Single\NR-AR\3\3_training_history.png" alt="Before SMOTE" caption="Training history">
 </div>
 
-The t-SNE visualizations showed good separation between active and inactive compounds in the model's embedding space, particularly for the training set.
+**t-SNE (t-Distributed Stochastic Neighbor Embedding)** is a dimensionality reduction technique that visualizes high-dimensional data in 2D/3D by preserving local similarities. It helps in ML by **Revealing clusters/patterns** in complex data (e.g., molecular embeddings) and **Validating preprocessing** (e.g., checking if SMOTE creates realistic synthetic samples). The t-SNE visualizations showed good separation between active and inactive compounds in the model's embedding space, particularly for the training set.
 
 
-### 3. Making Predictions
+### Making Predictions
 Load the saved model and predict on new data:
 ```python
 import tensorflow as tf
@@ -394,7 +465,7 @@ X_new = preprocess_data(new_data)
 predictions = model.predict(X_new)
 ```
 
-### 4. Evaluating Performance and Results Interpretation
+### Evaluating Performance and Results Interpretation
 
 The model presesnts strong performance with actionable insights
 
@@ -434,9 +505,20 @@ Output files are saved in `output/Single/NR-AR/` with:
 4. `tsne_*.png` - t-SNE visualizations
 
 
-
-
 For questions or issues, please open a GitHub issue.
+
+
+#### Tests
+To run the script for model training:
+```
+python scripts/model.py
+```
+
+#### Tests
+To run tests for model training:
+```
+python tests/test_model.py
+```
 
 ## Conclusion
 

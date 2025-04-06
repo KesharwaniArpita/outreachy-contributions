@@ -4,7 +4,7 @@ from pathlib import Path
 from eosce.models import ErsiliaCompoundEmbeddings
 from dataloader import get_dataloader  # Importing the existing dataloader script
 
-def featurize_and_save(data_path, output_path, batch_size=32):
+def featuriser(data_path, output_path, batch_size=32):
     # Load data using the existing DataLoader
     train_loader, valid_loader, test_loader = get_dataloader(data_path, batch_size=batch_size)
     
@@ -35,4 +35,4 @@ def featurize_and_save(data_path, output_path, batch_size=32):
 if __name__ == "__main__":
     data_path = "../data/Single/tox21_NR-AR.parquet"  # Adjust as needed
     output_path = "../output/tox21_NR-AR_featurized.parquet"
-    featurize_and_save(data_path, output_path)
+    featuriser(data_path, output_path)
