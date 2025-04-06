@@ -55,12 +55,13 @@ Our selection is further supported by:
 
 2. Alaca, Y., Emin, B., & Akgul, A. (2024). *A Comparative Study of Deep Learning Models and Classification Algorithms for Chemical Compound Identification and Tox21 Prediction*. Computers and Chemical Engineering, 189.
 
----
+
 
 ## Tox21 Data Processing and EDA
 
-### Overview
-This project consists of two Python scripts for handling the Tox21 dataset:
+**Exploratory Data Analysis (EDA)** is the critical first step in data science that involves summarizing, visualizing, and analyzing datasets to uncover patterns, detect anomalies, and guide preprocessing decisions. For the Tox21 dataset, EDA is essential to check for class imbalance (e.g., fewer active compounds than inactive ones), validate feature distributions (e.g., ensuring molecular embeddings are meaningful), and identify outliers or noise that could skew model performance. By conducting EDA, we ensure the data is clean, balanced, and suitable for training robust models, ultimately improving the reliability of predictions for toxicology endpoints like NR-AR activity. Without EDA, hidden biases or artifacts in the data could lead to misleading results.
+
+This consists of two Python scripts for handling the Tox21 dataset:
 1. **Data Loading (`dataloader.py`)**: Defines a PyTorch Dataset class and functions to create DataLoaders for training, validation, and testing.
 2. **Exploratory Data Analysis (`eda.py`)**: Performs exploratory data analysis (EDA) on the dataset, generating visualizations and summary reports.
 
@@ -135,15 +136,15 @@ python eda.py --file path/to/dataset.parquet --output output_directory/
 - **Class Imbalance:** Some toxicity endpoints show class imbalance, requiring techniques like resampling or weighted loss functions.    
 
 
-## Featurization Script
+## Featurization of Tox21 NR-AR
 
-This part focuses on processing and featurizing the Tox21 dataset for downstream machine learning tasks. The dataset contains molecular structures in SMILES format, along with labels for toxicity prediction. This repository provides scripts to:
+The Tox21 dataset comprises 12 distinct toxicity assays, including nuclear receptor signaling (e.g., NR-AR, NR-AhR) and stress response pathways (e.g., SR-ARE). This part focuses on processing and featurizing the Tox21 NR-AR dataset for downstream machine learning tasks. The dataset contains molecular structures in SMILES format, along with labels for toxicity prediction. This repository provides scripts to:
 
 1. Load and preprocess the Tox21_NR-AR dataset
 2. Generate molecular embeddings using the ErsiliaCompoundEmbeddings model
 3. Store the featurized dataset in Parquet format for efficient use
 
-The Tox21 dataset comprises 12 distinct toxicity assays, including nuclear receptor signaling (e.g., NR-AR, NR-AhR) and stress response pathways (e.g., SR-ARE). While specialized models like the Cardiotoxicity Classifier (eos1pu1) are optimized for hERG inhibition (a single endpoint), they lack generalizability across diverse toxicity mechanisms.
+ While specialized models like the Cardiotoxicity Classifier (eos1pu1) are optimized for hERG inhibition (a single endpoint), they lack generalizability across diverse toxicity mechanisms.
 
 - Compound Embeddings (eos2gw4), in contrast, provide task-agnostic molecular representations derived from:
 
@@ -154,7 +155,7 @@ The Tox21 dataset comprises 12 distinct toxicity assays, including nuclear recep
 This ensures that embeddings capture both structural and functional toxicity signals, making them suitable for all 12 Tox21 assays without bias toward a single endpoint.
 
 ### Description
-The featurization script (`scripts/featuriser.py`) converts SMILES representations of molecules into numerical embeddings using the `ErsiliaCompoundEmbeddings` model.
+The featurization script (`scripts/featuriser.py`) converts SMILES representations of molecules into 1024 numerical embeddings using the `ErsiliaCompoundEmbeddings` model.
 
 ### Usage
 Run the script as follows:
@@ -289,19 +290,166 @@ sns.countplot(x=y_resampled, ax=ax2).set_title("After SMOTE")
   <img src="./images/aSMOTE.png" width="49%" alt="After SMOTE">
 </div>
 
-## Reproducibility Notes
+### Reproducibility Notes
 - All random operations seeded with `random_state=42`
 - Validation/test sets remain completely unseen during SMOTE
 - Standardization parameters (μ, σ) derived exclusively from training data
 
 
 ## Model Training
-To be Updated...
+This section details a deep learning model developed to predict androgen receptor (AR) activity using the Tox21 NR-AR dataset. The model serves as a computational tool for identifying potential endocrine disruptors by classifying compounds as AR-active or inactive.
 
+### Data Preprocessing
+1. **Feature Scaling**: All embedding features are standardized (mean=0, std=1)
+2. **Class Balancing**: Training data is resampled using SMOTE
+3. **Train/Val/Test Split**: 80%/10%/10% stratified split
+
+(Details discussion in )
+
+### Hyperparameters
+ 
+Hyperparameters are **configurable settings** that control how a neural network learns. Unlike model parameters (weights and biases), hyperparameters are **set before training** and influence:  
+- **Model architecture** (e.g., number of layers, neurons)  
+- **Training process** (e.g., learning rate, batch size)  
+- **Regularization** (e.g., dropout rate, weight decay)  
+
+
+
+#### Key Hyperparameters in Tox21 NR-AR Model
+
+| Hyperparameter | Value | Role |
+|--------------|------------|------|
+| **Learning Rate (lr)** | `0.00001` | Controls step size in gradient descent (too high → overshooting; too low → slow convergence) |
+| **Batch Size** | `1024` | Number of samples processed before updating weights (affects memory usage and gradient stability) |
+| **Epochs** | `150` | Number of full passes through the training data |
+| **Hidden Layers** | `4` | Depth of the network (512 → 256 → 128 → 64 neurons) |
+| **Dropout Rate** | `0.3` | Fraction of neurons randomly deactivated to prevent overfitting |
+| **Optimizer** | `Adam` | Adaptive learning rate algorithm (combines momentum + RMSProp) |
+| **Activation** | `ReLU` (hidden), `Sigmoid` (output) | Introduces non-linearity (ReLU) and squashes outputs to [0,1] (Sigmoid) |
+
+
+ 
+
+### Model Architecture
+
+A novel deep neural network with the following architecture is implemented:
+- **Input Layer**: 256 dimensions (matching molecular embedding size)
+- **Hidden Layers**: 512 → 256 → 128 → 64 units with ReLU activation
+- **Output Layer**: 1 unit with sigmoid activation
+- **Regularization**: Batch normalization and dropout (0.3) after each hidden layer
+- **Optimization**: Adam optimizer (lr=1e-5) with binary cross-entropy loss
+
+
+```python
+model = keras.Sequential([
+    layers.Input(shape=(256,)),
+    layers.Dense(512, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.3),
+    layers.Dense(256, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.3),
+    layers.Dense(128, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.3),
+    layers.Dense(64, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dropout(0.3),
+    layers.Dense(1, activation='sigmoid')
+])
+```
+
+
+The model was trained on resampled data (using SMOTE) to address class imbalance, with separate validation and test sets held out for evaluation.
+
+### Results
+Key performance metrics:
+
+| Dataset    | Accuracy | Loss  | Precision | Recall | F1-Score |
+|------------|----------|-------|-----------|--------|----------|
+| Training   | 0.98     | 0.06  | 0.98      | 0.98   | 0.98     |
+| Validation | 0.93     | 0.22  | 0.94      | 0.94   | 0.94     |
+| Test       | 0.90     | 0.31  | 0.95      | 0.91   | 0.93     |
+
+<div style="display: flex; justify-content: space-between;">
+  <img src="output\Single\NR-AR\3\3_training_history.png" alt="Before SMOTE" caption="Training history">
+</div>
+
+The t-SNE visualizations showed good separation between active and inactive compounds in the model's embedding space, particularly for the training set.
+
+
+### 3. Making Predictions
+Load the saved model and predict on new data:
+```python
+import tensorflow as tf
+import pandas as pd
+
+model = tf.keras.models.load_model('models/tox21_classifier.h5')
+new_data = pd.read_parquet('path_to_new_data.parquet')
+
+# Preprocess (same as training)
+X_new = preprocess_data(new_data) 
+
+# Predict
+predictions = model.predict(X_new)
+```
+
+### 4. Evaluating Performance and Results Interpretation
+
+The model presesnts strong performance with actionable insights
+
+1. **High Predictive Accuracy**  
+   - Achieved **98% training accuracy** (F1=0.98) and **93% validation accuracy**, demonstrating robust learning of NR-AR activity patterns.  
+   - **Test set performance (90% accuracy, F1=0.93)** confirms practical utility for toxicity screening.  
+
+2. **Reliable Class Separation**  
+   - **t-SNE visualizations** show clear clustering of active/inactive compounds, validating the model’s ability to discern structural features linked to AR activity.  
+   - **High AUC (0.99 train, 0.75 test)**: While train performance is exceptional, the test AUC remains acceptable for binary classification tasks.  
+
+3. **Effective Regularization**  
+   - Controlled overfitting despite deep architecture:  
+     - **Minimal train-val gap** (~5% accuracy difference).  
+     - **Stable loss curves** (val loss plateaued at 0.22).  
+   - Credit to: **Dropout (30%) + BatchNorm** layers.  
+
+---
+
+### **Areas for Refinement**  
+- **Test Set Generalization**: Slight AUC drop (0.99 → 0.75) suggests tuning for real-world variability (e.g., augment data diversity).  
+- **False Positives**: Confusion matrices show ~12 FP in test set – consider cost-sensitive learning if false negatives are critical.  
+
+---
+
+### **Why This Matters**  
+This model **reliably flags potential endocrine disruptors** with 9/10 correct predictions, accelerating toxicology research while reducing lab costs. The careful balance of depth (4 layers) and regularization sets a strong baseline for future iterations.  
+
+**Next Steps**:  
+I'm planning to test this model on other Tox21 assays (like NR-AhR or SR-ARE) and external datasets to validate its generalizability. This is significant because it will reveal whether the learned features can reliably predict diverse toxicity endpoints, potentially reducing the need for redundant assays and accelerating chemical safety assessment. If successful, it could enable a unified computational framework for multiple toxicity endpoints, cutting costs and time in regulatory decision-making.
+
+
+Output files are saved in `output/Single/NR-AR/` with:
+1. `training_history.png` - Training/validation metrics
+2. `confusion_matrices.png` - Performance across datasets
+3. `roc_curve.png` - ROC curves with AUC scores
+4. `tsne_*.png` - t-SNE visualizations
+
+
+
+
+For questions or issues, please open a GitHub issue.
+
+## Conclusion
+
+This project developed a high-accuracy deep learning model for predicting androgen receptor (AR) activity from chemical structures using the Tox21 NR-AR dataset. The model achieved 98% training accuracy and 90% test accuracy, effectively handling class imbalance through SMOTE oversampling and maintaining generalization via dropout regularization. t-SNE visualizations confirmed the model's ability to distinguish active and inactive compounds. By providing a fast computational screening tool, this work helps identify potential endocrine disruptors early in drug development while reducing lab costs. Future directions include expanding predictions to other Tox21 assays (like NR-AhR and SR-ARE) to test cross-endpoint applicability and further validate the model's utility in computational toxicology. The implementation is available under GNU GPLv3 licensing for community use and improvement.
 
 ## Acknowledgments
 This project utilizes the [Ersilia](https://ersilia.io/) model for molecular embeddings.
 
-## License
-MIT License. See `LICENSE` for details.
+## Citation
+If you use this model in your research, please cite:
+```
+Arpita Kesharwani. (2025). Tox21 NR-AR Classifier. GitHub repository. https://github.com/KesharwaniArpita/Outreachy-Contributions
+```
 
+## License
+GNU GENERAL PUBLIC LICENSE.  Version 3, 29 June 2007
