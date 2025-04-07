@@ -1,6 +1,6 @@
 # Predicting Chemical Toxicity with Tox21: A Machine Learning Pipeline for Safer Drug Discovery
 
-This project is part of my Outreachy contribution period, focusing on building a machine learning pipeline to predict chemical toxicity using the Tox21 dataset from the Therapeutics Data Commons. It includes end-to-end data handling, exploratory data analysis, feature engineering with molecular embeddings, and techniques for class imbalance. The goal is to enable early toxicity screening in the drug development pipeline.
+This project is part of my Outreachy contribution period, focusing on building a machine learning pipeline to predict chemical toxicity using the Tox21 dataset from the Therapeutics Data Commons. It includes end-to-end data handling, exploratory data analysis, feature engineering with molecular embeddings using Ersilia, tackling class imbalance using SMOTE, and building a customised neural network. The goal is to enable early toxicity screening in the drug development pipeline.
 
 
 
