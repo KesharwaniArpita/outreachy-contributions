@@ -90,36 +90,36 @@ This project is part of my Outreachy contribution period, focusing on building a
 
 For this modeling exercise, I have selected the **Tox21 dataset** from the Therapeutics Data Commons (TDC). The choice of Tox21 is motivated by its significance, structure, and applicability in the field of drug discovery and computational toxicology.
 
----
+
 
 ### 🔑 1. Relevance to Drug Discovery and Toxicity Screening
 Tox21 addresses one of the key challenges in the drug discovery pipeline—**predicting chemical toxicity**. Toxicity is a primary cause of drug failure in clinical stages. Tox21 contains bioassay data that evaluates compounds' toxic effects across **12 well-defined biological targets**, including nuclear receptor signaling pathways (e.g., estrogen receptor, androgen receptor) and stress response pathways (e.g., p53, mitochondrial membrane potential).
 
 By modeling toxicity at the early screening stage, Tox21 allows us to filter out potentially harmful compounds, contributing to safer and more efficient drug development.
 
----
+
 
 ### 📊 2. Binary Classification-Friendly Structure
 Tox21 provides clear **binary classification labels (toxic/non-toxic)** for each compound, making it ideal for machine learning classification tasks. This aligns directly with our objective of building classification models, simplifying the data processing and model evaluation steps.
 
----
+
 
 ### 🚀 3. Well-Established Benchmark Dataset
 Tox21 is recognized as a benchmark dataset in the computational chemistry and machine learning communities. It is widely used for evaluating the performance of ML and DL models in toxicity prediction, ensuring our results are reproducible and comparable.
 
 According to the research paper **"A Comparative Study of Deep Learning Models and Classification Algorithms for Chemical Compound Identification and Tox21 Prediction" (2024)**, Tox21 has been used effectively to benchmark several deep learning models (ResNet50V2, InceptionV3, MobileNetV2, VGG19) and traditional ML models (Random Forest, KNN), demonstrating its robustness and versatility.
 
----
+
 
 ### 💻 4. Computational Feasibility
 With ~8,000 compounds and 12 tasks, Tox21 is **large enough to support deep learning applications**, but small enough to be computationally manageable on standard hardware. Unlike large-scale datasets like BindingDB (millions of entries), Tox21 allows for faster iterations and experimentation.
 
----
+
 
 ### 🧍‍♂️ 5. Multi-Task Learning Potential
 Each compound in Tox21 is annotated with **12 different toxicity labels**, enabling us to explore **multi-task learning models** that predict multiple toxicity endpoints simultaneously. This improves generalization and can offer deeper insights into compound behavior across biological systems.
 
----
+
 
 ### 🌍 6. Real-World Use Cases
 The Tox21 dataset has several practical applications:
@@ -129,7 +129,7 @@ The Tox21 dataset has several practical applications:
 - **Off-Target Prediction:** Ensuring that compounds binding to target proteins do not adversely affect other pathways.
 - **Regulatory Compliance:** Supporting chemical safety regulations by predicting potential harmful effects.
 
----
+
 
 ### 📚 7. Backed by Literature
 
@@ -450,19 +450,13 @@ Key performance metrics:
 
 
 ### Making Predictions
-Load the saved model and predict on new data:
-```python
-import tensorflow as tf
-import pandas as pd
+Execute the `implementation.py` with:
 
-model = tf.keras.models.load_model('models/tox21_classifier.h5')
-new_data = pd.read_parquet('path_to_new_data.parquet')
-
-# Preprocess (same as training)
-X_new = preprocess_data(new_data) 
-
-# Predict
-predictions = model.predict(X_new)
+```
+python implementation.py \
+    --model_path models/tox21_model.h5 \
+    --data_path data/tox21_NR-AR-LBD.parquet \
+    --output_dir results/nr_ar_lbd/
 ```
 
 ### Evaluating Performance and Results Interpretation
@@ -483,6 +477,35 @@ The model presesnts strong performance with actionable insights
      - **Stable loss curves** (val loss plateaued at 0.22).  
    - Credit to: **Dropout (30%) + BatchNorm** layers.  
 
+### Exercise: Model Evaluation on NR-AR-LBD  
+
+I also tested if the best model `3_tox21_classifier.h5` generalizes to **NR-AR-LBD** dataset, a related toxicity endpoint.  
+
+#### Results Summary 
+
+| **Metric**          | **Value**  | **Interpretation** |
+|---------------------|------------|--------------------|
+| **Accuracy**        | 81.93%     | Decent overall prediction rate. |
+| **ROC AUC**         | 0.826      | Good class separation ability. |
+| **Positive Recall** | 70%        | Detects **70% of toxic compounds** correctly. |
+| **Positive Precision** | 13%  | **High false positives** due to class imbalance. |
+
+#### Class Distribution 
+- **Non-Toxic (0.0)**: 96.5% (6,521 samples)  
+- **Toxic (1.0)**: 3.5% (237 samples)  
+
+#### Confusion Matrix  
+|                     | Predicted Non-Toxic | Predicted Toxic |
+|---------------------|---------------------|-----------------|
+| **Actual Non-Toxic**| 5,371               | 1,150           |
+| **Actual Toxic**    | 71                  | 166             |  
+
+
+✅ **Model generalizes reasonably well** (AUC = 0.826) despite being trained on a different endpoint.  
+⚠ **Severe class imbalance** affects precision (only 13% of predicted toxic compounds are correct).  
+🔍 **t-SNE plots** show some clustering of toxic compounds, but overlap exists. 
+
+
 ---
 
 ### **Areas for Refinement**  
@@ -498,11 +521,14 @@ This model **reliably flags potential endocrine disruptors** with 9/10 correct p
 I'm planning to test this model on other Tox21 assays (like NR-AhR or SR-ARE) and external datasets to validate its generalizability. This is significant because it will reveal whether the learned features can reliably predict diverse toxicity endpoints, potentially reducing the need for redundant assays and accelerating chemical safety assessment. If successful, it could enable a unified computational framework for multiple toxicity endpoints, cutting costs and time in regulatory decision-making.
 
 
-Output files are saved in `output/Single/NR-AR/` with:
+Output files and the model training logs are saved in `output/Single/f{dataset}` with:
+
 1. `training_history.png` - Training/validation metrics
 2. `confusion_matrices.png` - Performance across datasets
 3. `roc_curve.png` - ROC curves with AUC scores
 4. `tsne_*.png` - t-SNE visualizations
+
+
 
 
 For questions or issues, please open a GitHub issue.
